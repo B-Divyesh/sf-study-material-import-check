@@ -19,11 +19,13 @@ All parsing and export happens in browser memory. Nothing is uploaded or saved b
 
 ## Develop and verify
 
-Requires Node.js 20 or newer. Playwright 1.58.2 uses Chromium for end-to-end tests.
+Requires Node.js 20.19 or newer. Playwright 1.58.2 uses Chromium for end-to-end tests.
 
 ```sh
 npm ci
 npm run dev
+npm run lint
+npm run typecheck
 npm test
 npm run build
 ```
@@ -32,7 +34,7 @@ The exact production build command is `npm run build`. Output is written to `dis
 
 ## Deploy
 
-Deploy `dist/` as a static site. `public/staticwebapp.config.json` supplies Azure Static Web Apps route fallback and security headers for the `/privacy`, `/terms`, and `/format` client-side routes.
+Deploy `dist/` as a static site. `public/staticwebapp.config.json` supplies Azure Static Web Apps rewrites for `/privacy`, `/terms`, and `/format`, a real 404 response for unknown routes, immutable caching for hashed build assets, image MIME types, and security headers.
 
 The format is documented in the app at `/format`. The product brief and paper-cut visual system live in `.factory/brief.json` (when provided by the factory) and `.factory/design.md`.
 

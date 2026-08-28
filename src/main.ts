@@ -71,7 +71,13 @@ function renderInfoPage(path: string): void {
 }</code></pre><h2>Safety rules</h2><p>Prompt, answer, hint, and tag values that begin with spreadsheet formula characters are prefixed with an apostrophe. Media accepts HTTPS URLs only. Blank and duplicate cards are omitted.</p>`,
     },
   }
-  const page = pages[path] ?? pages['/format']
+  const page = pages[path]
+  if (!page) {
+    document.title = 'Page not found — Study Material Import Check'
+    app.innerHTML = shell(`<main id="main" class="info-page not-found-page"><a class="back-link" href="/">← Back to inspector</a><p class="eyebrow">Nothing filed here</p><h1>This page is not on the desk.</h1><div class="prose"><p>The address may be mistyped or the page may have moved. Your study material has not been changed.</p><p><a class="button primary" href="/">Open the inspector</a></p></div></main>`)
+    return
+  }
+  document.title = `${page.title} — Study Material Import Check`
   app.innerHTML = shell(`<main id="main" class="info-page"><a class="back-link" href="/">← Back to inspector</a><p class="eyebrow">${page.eyebrow}</p><h1>${page.title}</h1><div class="prose">${page.body}</div></main>`)
 }
 
@@ -84,14 +90,22 @@ function suggestMapping(parsed: ParsedMaterial, header: boolean): Role[] {
     media: /^(media|image|audio|url|media url)$/i,
     tags: /^(tag|tags|category)$/i,
   }
+  const used = new Set<Role>()
   return Array.from({ length: parsed.maxColumns }, (_, index) => {
     const label = (headers[index] ?? '').trim()
     const found = (Object.entries(aliases) as [Exclude<Role, 'ignore'>, RegExp][]).find(([, pattern]) => pattern.test(label))
-    if (found) return found[0]
-    if (index === 0) return 'prompt'
-    if (index === 1) return 'answer'
+    const suggested: Role = found?.[0] ?? (index === 0 ? 'prompt' : index === 1 ? 'answer' : 'ignore')
+    if (suggested !== 'ignore' && used.has(suggested)) return 'ignore'
+    used.add(suggested)
+    if (suggested !== 'ignore') return suggested
     return 'ignore'
   })
+}
+
+function focusAfterRender(selector: string, scrollSelector?: string): void {
+  const element = document.querySelector<HTMLElement>(selector)
+  element?.focus({ preventScroll: true })
+  if (scrollSelector) document.querySelector(scrollSelector)?.scrollIntoView({ block: 'nearest' })
 }
 
 function parseSource(): void {
@@ -100,6 +114,7 @@ function parseSource(): void {
     state.mapping = []
     state.status = 'Add a file or paste some material first.'
     renderApp()
+    focusAfterRender('#inspect-button', '#status')
     return
   }
   state.parsed = parseMaterial(state.source, state.delimiter)
@@ -107,7 +122,7 @@ function parseSource(): void {
   state.mapping = suggestMapping(state.parsed, state.hasHeader)
   state.status = `${Math.max(0, state.parsed.rows.length - (state.hasHeader ? 1 : 0))} rows inspected locally.`
   renderApp()
-  requestAnimationFrame(() => document.querySelector('#findings')?.scrollIntoView({ block: 'start' }))
+  focusAfterRender('#findings-title', '#findings')
 }
 
 function dataRows(): string[][] {
@@ -188,27 +203,41 @@ function download(filename: string, contents: string, type: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-function exportPack(): void {
-  if (mappedIndex('prompt') < 0 || mappedIndex('answer') < 0 || !cleanedCards().length) {
-    state.status = 'Map Prompt and Answer and keep at least one complete card before exporting.'
-    renderApp()
-    document.querySelector('#status')?.scrollIntoView()
-    return
+function exportValidationMessage(cards: ReturnType<typeof cleanedCards>): string {
+  if (mappedIndex('prompt') < 0 || mappedIndex('answer') < 0 || !cards.length) {
+    return 'Map Prompt and Answer and keep at least one complete card before exporting.'
   }
+  return ''
+}
+
+function blockInvalidExport(cards: ReturnType<typeof cleanedCards>, focusSelector: string): boolean {
+  const message = exportValidationMessage(cards)
+  if (!message) return false
+  state.status = message
+  renderApp()
+  focusAfterRender(focusSelector, '#status')
+  return true
+}
+
+function exportPack(): void {
   const cards = cleanedCards()
+  if (blockInvalidExport(cards, '#export-pack')) return
   const title = (state.name || 'study-material').replace(/\.[^.]+$/, '')
   const pack = { format: 'study-pack', version: 1, title, createdAt: new Date().toISOString(), fields: ['prompt', 'answer', 'hint', 'media', 'tags'], cards }
   download(`${title}.study-pack.json`, `${JSON.stringify(pack, null, 2)}\n`, 'application/json;charset=utf-8')
   state.status = `${cards.length} ${cards.length === 1 ? 'card' : 'cards'} exported in a portable practice pack.`
   renderApp()
+  focusAfterRender('#export-pack')
 }
 
 function exportCsv(): void {
   const cards = cleanedCards()
+  if (blockInvalidExport(cards, '#export-csv')) return
   const lines = ['Prompt,Answer,Hint,Media,Tags', ...cards.map((card) => [card.prompt, card.answer, card.hint, card.media, card.tags.join('; ')].map(csvEscape).join(','))]
   download('clean-study-material.csv', `${lines.join('\r\n')}\r\n`, 'text/csv;charset=utf-8')
   state.status = `${cards.length} cleaned ${cards.length === 1 ? 'row' : 'rows'} exported as CSV.`
   renderApp()
+  focusAfterRender('#export-csv')
 }
 
 function rowNumbers(rows?: number[]): string { return rows?.length ? ` <span class="row-list">Rows ${rows.slice(0, 6).join(', ')}${rows.length > 6 ? '…' : ''}</span>` : '' }
@@ -220,13 +249,13 @@ function renderWorkspace(): string {
   const rows = dataRows()
   const headers = state.hasHeader ? state.parsed.rows[0] : Array.from({ length: state.parsed.maxColumns }, (_, index) => `Column ${index + 1}`)
   return `<section id="findings" class="work-section paper-sheet" aria-labelledby="findings-title">
-    <div class="section-heading"><div><p class="eyebrow">2 · Inspect</p><h2 id="findings-title">Margin notes</h2></div><p class="summary-stamp ${counts.error ? 'needs-work' : 'ready'}">${counts.error ? `${counts.error} to resolve` : 'Ready to map'}</p></div>
+    <div class="section-heading"><div><p class="eyebrow">2 · Inspect</p><h2 id="findings-title" tabindex="-1">Margin notes</h2></div><p class="summary-stamp ${counts.error ? 'needs-work' : 'ready'}">${counts.error ? `${counts.error} to resolve` : 'Ready to map'}</p></div>
     <div class="finding-list">${findings.map((finding) => `<article class="finding ${finding.kind}">${icon(finding.kind === 'error' || finding.kind === 'warning' ? 'warn' : 'note')}<div><h3>${escapeHtml(finding.title)}</h3><p>${escapeHtml(finding.detail)}${rowNumbers(finding.rows)}</p></div></article>`).join('')}</div>
     <p class="repair-note">Export repairs are non-destructive: the source above never changes. Incomplete and duplicate cards are omitted; formulas are neutralized; unsafe media is removed.</p>
   </section>
   <section id="mapping" class="work-section" aria-labelledby="mapping-title">
     <div class="section-heading"><div><p class="eyebrow">3 · Map</p><h2 id="mapping-title">Tell each column its job</h2></div><label class="header-check"><input id="header-toggle" type="checkbox" ${state.hasHeader ? 'checked' : ''}> First row is a header</label></div>
-    <p class="section-intro">Prompt and Answer are required. Other columns travel with the card when present.</p>
+    <p class="section-intro">Prompt and Answer are required. Each role can be used once; choosing it for a new column moves it from the old one.</p>
     <div class="mobile-map-list" aria-label="Column mapping">${headers.map((header, index) => `<label><span>${escapeHtml(header || `Column ${index + 1}`)}</span><select class="role-select" data-column="${index}">${(Object.keys(roleNames) as Role[]).map((role) => `<option value="${role}" ${state.mapping[index] === role ? 'selected' : ''}>${roleNames[role]}</option>`).join('')}</select></label>`).join('')}</div>
     <div class="table-scroll" tabindex="0" aria-label="Column mapping and first rows; scroll horizontally if needed">
       <table><caption class="sr-only">Map source columns and preview rows</caption><thead><tr>${headers.map((header, index) => `<th scope="col"><span class="source-label">${escapeHtml(header || `Column ${index + 1}`)}</span><label><span class="sr-only">Role for ${escapeHtml(header || `column ${index + 1}`)}</span><select class="role-select" data-column="${index}">${(Object.keys(roleNames) as Role[]).map((role) => `<option value="${role}" ${state.mapping[index] === role ? 'selected' : ''}>${roleNames[role]}</option>`).join('')}</select></label></th>`).join('')}</tr></thead><tbody>${rows.slice(0, 8).map((row, rowIndex) => `<tr>${Array.from({ length: state.parsed!.maxColumns }, (_, columnIndex) => `<td><span class="cell-row">${rowIndex + (state.hasHeader ? 2 : 1)}</span>${escapeHtml(row[columnIndex] ?? '') || '<span class="empty-cell">Blank</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table>
@@ -240,10 +269,11 @@ function renderWorkspace(): string {
 }
 
 function renderApp(): void {
+  document.title = 'Study Material Import Check — inspect before you import'
   const offline = !navigator.onLine
   app.innerHTML = shell(`<main id="main">
     <section class="hero" aria-labelledby="hero-title"><div class="hero-copy"><p class="eyebrow">A quiet check before you practise</p><h1 id="hero-title">Turn a messy study file into tidy, portable cards.</h1><p class="hero-lede">Preview CSV, TSV, or plain text. Find blanks, duplicates, risky formulas, and broken media links—then export a clean, open practice pack.</p><a class="button primary" href="#importer">Check my material</a><p class="local-note">${icon('check')} Parsed entirely in your browser. Nothing is uploaded.</p></div>
-      <picture class="hero-art"><source media="(max-width: 640px)" srcset="/assets/hero-paper-workshop-640.avif" type="image/avif"><source media="(max-width: 640px)" srcset="/assets/hero-paper-workshop-640.webp" type="image/webp"><source srcset="/assets/hero-paper-workshop-960.avif" type="image/avif"><source srcset="/assets/hero-paper-workshop-960.webp" type="image/webp"><img src="/assets/hero-paper-workshop-960.jpg" width="960" height="640" alt="Paper study notes pass through a green inspection arch and emerge as three neat checked cards" fetchpriority="high" decoding="async"></picture>
+      <picture class="hero-art"><source media="(max-width: 640px)" srcset="/assets/hero-paper-workshop-640.f39ea86b.avif" type="image/avif"><source media="(max-width: 640px)" srcset="/assets/hero-paper-workshop-640.d26c82f4.webp" type="image/webp"><source srcset="/assets/hero-paper-workshop-960.73a2c0ca.avif" type="image/avif"><source srcset="/assets/hero-paper-workshop-960.1bfc26f2.webp" type="image/webp"><img src="/assets/hero-paper-workshop-960.064c2652.jpg" width="960" height="640" alt="Paper study notes pass through a green inspection arch and emerge as three neat checked cards" fetchpriority="high" decoding="async"></picture>
     </section>
     <ol class="trail" aria-label="Import steps"><li class="active"><span>1</span>Add</li><li class="${state.parsed ? 'active' : ''}"><span>2</span>Inspect</li><li class="${state.parsed ? 'active' : ''}"><span>3</span>Map</li><li class="${state.parsed ? 'active' : ''}"><span>4</span>Export</li></ol>
     <section id="importer" class="import-section" aria-labelledby="import-title"><div class="section-heading"><div><p class="eyebrow">1 · Add material</p><h2 id="import-title">Place your notes on the desk</h2></div><span class="connection ${offline ? 'offline' : ''}">${offline ? '○ Offline — still works' : '● Ready locally'}</span></div>
@@ -267,9 +297,9 @@ function bindEvents(): void {
   document.querySelector('#choose-file')?.addEventListener('click', (event) => { event.stopPropagation(); choose() })
   const drop = document.querySelector<HTMLElement>('#drop-sheet')
   const readFile = (file: File) => {
-    if (file.size > 5 * 1024 * 1024) { state.status = 'That file is over 5 MB. Split it into a smaller file and try again.'; renderApp(); return }
+    if (file.size > 5 * 1024 * 1024) { state.status = 'That file is over 5 MB. Split it into a smaller file and try again.'; renderApp(); focusAfterRender('#choose-file', '#status'); return }
     const reader = new FileReader()
-    reader.onerror = () => { state.status = 'The browser could not read that file. Save it as UTF-8 text and try again.'; renderApp() }
+    reader.onerror = () => { state.status = 'The browser could not read that file. Save it as UTF-8 text and try again.'; renderApp(); focusAfterRender('#choose-file', '#status') }
     reader.onload = () => { state.source = String(reader.result ?? ''); state.name = file.name; state.delimiter = file.name.endsWith('.tsv') ? '\t' : undefined; parseSource() }
     reader.readAsText(file)
   }
@@ -277,8 +307,30 @@ function bindEvents(): void {
   ;['dragenter', 'dragover'].forEach((name) => drop?.addEventListener(name, (event) => { event.preventDefault(); drop.classList.add('dragging') }))
   ;['dragleave', 'drop'].forEach((name) => drop?.addEventListener(name, (event) => { event.preventDefault(); drop.classList.remove('dragging') }))
   drop?.addEventListener('drop', (event) => { const file = (event as DragEvent).dataTransfer?.files[0]; if (file) readFile(file) })
-  document.querySelector('#header-toggle')?.addEventListener('change', (event) => { state.hasHeader = (event.target as HTMLInputElement).checked; state.mapping = suggestMapping(state.parsed!, state.hasHeader); renderApp(); document.querySelector('#mapping')?.scrollIntoView() })
-  document.querySelectorAll<HTMLSelectElement>('.role-select').forEach((select) => select.addEventListener('change', () => { state.mapping[Number(select.dataset.column)] = select.value as Role; renderApp(); document.querySelector('#mapping')?.scrollIntoView() }))
+  document.querySelector('#header-toggle')?.addEventListener('change', (event) => {
+    state.hasHeader = (event.target as HTMLInputElement).checked
+    state.mapping = suggestMapping(state.parsed!, state.hasHeader)
+    renderApp()
+    focusAfterRender('#header-toggle', '#mapping')
+  })
+  document.querySelectorAll<HTMLSelectElement>('.role-select').forEach((select) => select.addEventListener('change', () => {
+    const column = Number(select.dataset.column)
+    const role = select.value as Role
+    const previousColumn = role === 'ignore' ? -1 : state.mapping.findIndex((mappedRole, index) => mappedRole === role && index !== column)
+    if (previousColumn >= 0) state.mapping[previousColumn] = 'ignore'
+    state.mapping[column] = role
+    const rows = state.parsed?.rows ?? []
+    const nextLabel = state.hasHeader ? rows[0]?.[column]?.trim() || `Column ${column + 1}` : `Column ${column + 1}`
+    if (previousColumn >= 0) {
+      const previousLabel = state.hasHeader ? rows[0]?.[previousColumn]?.trim() || `Column ${previousColumn + 1}` : `Column ${previousColumn + 1}`
+      state.status = `${roleNames[role]} moved from ${previousLabel} to ${nextLabel}. Each role can be used once.`
+    } else {
+      state.status = role === 'ignore' ? `${nextLabel} will be ignored.` : `${nextLabel} is mapped to ${roleNames[role]}.`
+    }
+    const container = select.closest('.mobile-map-list') ? '.mobile-map-list' : '.table-scroll'
+    renderApp()
+    focusAfterRender(`${container} .role-select[data-column="${column}"]`, '#mapping')
+  }))
   document.querySelector('#export-pack')?.addEventListener('click', exportPack)
   document.querySelector('#export-csv')?.addEventListener('click', exportCsv)
 }

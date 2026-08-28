@@ -44,7 +44,7 @@ Paper layers settle with a 220 ms translate-and-opacity entrance; tabs and butto
 
 ## Asset plan and provenance
 
-The only raster illustration is a wide hero scene: an abstract paper-cut desk where uneven source slips pass through a green inspection frame and emerge as three orderly study cards. It is explanatory, has generous empty paper around it, and includes no UI screenshot, text, people, brands, or logos. Small icons are original inline SVGs authored for this product.
+The only raster illustration is a wide hero scene: an abstract paper-cut desk where uneven source slips pass through a green inspection frame and emerge as three orderly study cards. It is explanatory, has generous empty paper around it, and includes no UI screenshot, text, people, brands, or logos. Small icons and the leaf favicon are original SVGs authored for this product.
 
 ### Generation prompt
 
@@ -53,4 +53,4 @@ The only raster illustration is a wide hero scene: an abstract paper-cut desk wh
 - Generator: Azure AI Foundry via factory `gen-image.sh`, deployment `factory-image`.
 - Date: 2026-08-28.
 - License/provenance: original model-generated asset commissioned for this product; retained source prompt sidecar in `assets/src/` and disclosed in the footer.
-- Delivery: optimized responsive WebP/AVIF plus PNG fallback; mobile candidate under 300 KB with explicit dimensions.
+- Delivery: optimized responsive WebP/AVIF plus JPEG fallback; content-hashed filenames allow safe immutable caching, and the mobile candidate is under 300 KB with explicit dimensions.

@@ -33,7 +33,7 @@ a:hover { text-decoration-thickness: 2px; }
 .icon { width: 1.25em; height: 1.25em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 .site-header { min-height: 72px; max-width: 1240px; margin: auto; padding: 12px 32px; display: flex; align-items: center; gap: 32px; }
-.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--graphite); font-family: Georgia, Cambria, "Times New Roman", serif; font-weight: 700; font-size: 19px; text-decoration: none; margin-right: auto; }
+.brand { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; gap: 10px; color: var(--graphite); font-family: Georgia, Cambria, "Times New Roman", serif; font-weight: 700; font-size: 19px; text-decoration: none; margin-right: auto; }
 .brand-mark { width: 40px; height: 40px; display: grid; place-items: center; background: var(--forest); color: #fff; border-radius: 50% 45% 52% 43%; transform: rotate(-3deg); box-shadow: 2px 3px 0 var(--kraft); }
 .site-header nav, footer nav { display: flex; align-items: center; gap: 24px; }
 .site-header nav a { min-height: 44px; display: inline-flex; align-items: center; color: var(--graphite); text-decoration: none; }
@@ -132,6 +132,7 @@ footer p { margin: 0; }
 .prose h2 { margin: 40px 0 12px; font-size: 26px; }
 .prose pre { overflow: auto; padding: 20px; background: #eae3d5; border-left: 4px solid var(--forest); font-size: 14px; }
 .prose code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.not-found-page h1 { max-width: 13ch; }
 
 @media (max-width: 900px) {
   .site-header nav { display: none; }
@@ -178,7 +179,7 @@ footer p { margin: 0; }
   .export-actions a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   footer { margin: 32px 16px 0; padding-bottom: calc(36px + env(safe-area-inset-bottom)); grid-template-columns: 1fr; }
   footer nav { flex-wrap: wrap; gap: 12px 20px; }
-  footer nav a { min-height: 44px; display: inline-flex; align-items: center; }
+  footer nav a { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .info-page { padding: 48px 20px; }
 }
 
