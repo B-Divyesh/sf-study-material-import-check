@@ -1,39 +1,45 @@
-# Handoff — Study Material Import Check
+# Verification handoff — Study Material Import Check
 
-## What was built
+## Result: FAIL
 
-- Complete local-only CSV, TSV, semicolon, pipe, and `Prompt :: Answer` text parser with quoted fields, escaped quotes, multiline fields, BOM and CRLF handling.
-- Drag/drop, keyboard-accessible file picker, paste/edit path, 5 MB guard, empty/error guidance, malformed starter sample, and offline status.
-- Findings for missing required fields, duplicate cards, blank/uneven rows, unclosed quotes, spreadsheet formula prefixes, and unsafe media URLs.
-- Header detection and per-column mapping to prompt, answer, hint, media URL, tags, or ignore.
-- Non-destructive cleanup with previews and export to both documented `study-pack` v1 JSON and sanitized CSV. Incomplete/duplicate rows are omitted; formula-like values are prefixed; only HTTPS media is retained.
-- Open format documentation at `/format`, plus `/privacy` and `/terms` routes.
-- Product-specific paper-cut visual system, original generated hero artwork, responsive AVIF/WebP/JPEG delivery, reduced-motion handling, and a stacked 390 px mapping experience.
-- Azure Static Web Apps navigation fallback and security headers.
+Independent QA tested candidate `48152d26250df02bd96cee8db2e9c57d8dc4e5a1` and <https://study-material-import-check.sociobot.in> on 2026-08-28. The live site is deployed, healthy, and byte-for-byte identical to the candidate build. It nevertheless fails the product acceptance contract on core mapping/export correctness.
 
-## Verification
+## Release-blocking defects
 
-Run from a clean checkout:
+- **Major — duplicate mappings silently export the first mapped column.** Mapping an additional column to Prompt leaves both selectors on Prompt, gives no conflict warning, and exports the earlier column instead of the newly selected one.
+- **Major — clean CSV accepts zero valid cards.** For `Prompt,Answer\nOnly prompt,`, practice-pack export correctly blocks, but clean-CSV export downloads a header-only file and reports success.
+
+Additional minor defects: role-change rerenders discard keyboard focus; hashed live assets use only `max-age=30` and no `immutable`; AVIF is served as `application/octet-stream`; the 390 px home and Terms targets are slightly under 44 px wide/high; unknown routes return 200 and render the format page.
+
+## Verification completed
+
+From a clean detached checkout at the candidate:
 
 ```sh
 npm ci
 npm test
 npm run build
+npm audit --audit-level=high
 ```
 
-- `npm test`: passed 4 Vitest parser tests and 8 Playwright tests (desktop + 390 px mobile), including malformed-file export, empty state, legal/format routes, console-error smoke test, and axe WCAG A/AA scan with no serious or critical violations.
-- `npm run build`: passed; output at `dist/index.html`.
-- `npm audit --audit-level=high`: 0 vulnerabilities.
-- Production payload: 20.01 KB JavaScript (8.00 KB gzip), 13.91 KB CSS (4.12 KB gzip). Largest hero fallback is 72 KB; 960 px AVIF is 28 KB and 640 px AVIF is 16 KB.
-- Lighthouse 13.0.1, mobile defaults against local production preview: Performance 100, Accessibility 100, Best Practices 96, SEO 92; LCP 1.4 s, CLS 0, Total Blocking Time 0 ms.
-- Manual visual checks completed at 1440 px and 390 px. The mobile page has no horizontal document overflow and all primary controls meet the 44 px target.
+- 4/4 Vitest tests and 8/8 Playwright tests passed.
+- TypeScript strict check and exact Vite production build passed; `dist/` was produced.
+- No lint script exists. Audit reported zero vulnerabilities.
+- Independent CSV, TSV, semicolon, pipe, plain-text, quoted/multiline, empty, malformed, duplicate, unsafe-media, formula, XSS, file-size boundary, drag/drop, keyboard, offline-loaded, and export checks were run.
+- Axe WCAG A/AA: zero violations at any impact level on local desktop initial, local 390 px populated, and live populated states.
+- No console/page errors, horizontal overflow, third-party requests, analytics, cookies, storage, or content upload were observed.
+- Live Lighthouse 13.0.1 mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 92; LCP 0.907 s, TBT 43 ms, CLS 0.
+- Live HTML, JS, CSS, and all hero assets match the candidate build by SHA-256.
 
-## Known gaps and next steps
+Full commands, evidence, response headers, hashes, budgets, and reproduction steps are in [`.factory/verification.md`](verification.md).
 
-- The v1 is intentionally for small UTF-8 text files up to 5 MB. It does not decode spreadsheet workbooks, fetch remote media, or rewrite source files in place.
-- Media validation is intentionally conservative: only syntactically valid HTTPS URLs are kept; link availability is not fetched because that would disclose user data and make offline use unreliable.
-- A future desktop/batch product could add encoding detection, multiple-file processing, and destination-specific adapters while keeping the documented manifest as the interchange layer.
+## Required next steps
 
-## Asset provenance
+1. Enforce unique field roles or block conflicting mappings with an actionable message.
+2. Apply practice-pack validation to clean-CSV export and add regression coverage.
+3. Preserve focus after mapping changes.
+4. Add long-lived immutable caching for hashed assets and correct the AVIF MIME type.
+5. Bring all mobile targets to at least 44 × 44 CSS px and add a real not-found state.
+6. Rerun all clean-checkout and live-deployment checks before release.
 
-The hero source is `assets/src/hero-paper-workshop.png`; its full prompt and generator metadata are in `assets/src/hero-paper-workshop.json` and `.factory/design.md`. It was generated on 2026-08-28 with the factory Azure image deployment, reviewed for text/brand artifacts, and optimized locally to responsive AVIF, WebP, and JPEG assets.
+No product code was modified during this verification.
