@@ -36,7 +36,7 @@ Status is always paired with a word and icon, never color alone.
 - One forest-green action advances each stage. Secondary actions look like pencil annotations, not competing buttons.
 - Drop and paste share equal prominence. Keyboard users can activate the drop sheet and choose a file.
 - Mapping controls sit directly above preview columns so cause and effect remain spatially connected.
-- On 390 px screens the illustration drops behind the introduction, the stage trail becomes two columns, and the table scrolls horizontally with a visible cue.
+- On 390 px screens the illustration drops behind the introduction, the stage trail becomes two columns, and column mapping becomes a stacked, touch-friendly list with a compact card preview.
 
 ## Motion
 
@@ -54,4 +54,3 @@ The only raster illustration is a wide hero scene: an abstract paper-cut desk wh
 - Date: 2026-08-28.
 - License/provenance: original model-generated asset commissioned for this product; retained source prompt sidecar in `assets/src/` and disclosed in the footer.
 - Delivery: optimized responsive WebP/AVIF plus PNG fallback; mobile candidate under 300 KB with explicit dimensions.
-
