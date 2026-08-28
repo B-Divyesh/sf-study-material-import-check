@@ -1,14 +1,41 @@
 # Study Material Import Check
 
-Live: https://study-material-import-check.sociobot.in — built by the Param Factory (`static-web`).
+A calm, local-first inspector for learner-owned CSV, TSV, and plain-text study material. It previews rows, explains blank and duplicate cards, neutralizes spreadsheet formulas, removes non-HTTPS media links, maps columns, and exports an open practice-pack manifest or clean CSV.
 
-See `.factory/brief.json` for the researched problem this solves and `.factory/design.md` for the visual system.
+Live: <https://study-material-import-check.sociobot.in>
 
-## Develop
+## Who it is for
 
-```
-npm install
+Learners who want to move a small set of their own prompts and answers into a practice tool without uploading their notes, learning a proprietary format, or debugging opaque import errors.
+
+## Use it
+
+Drop a `.csv`, `.tsv`, or `.txt` file, or paste its contents. Plain text may use `Prompt :: Answer`; delimited files may use commas, tabs, semicolons, or pipes. Review the findings, map columns to Prompt and Answer, then export either:
+
+- `*.study-pack.json`, the documented version-1 portable format; or
+- `clean-study-material.csv`, a conventional sanitized CSV.
+
+All parsing and export happens in browser memory. Nothing is uploaded or saved by the app.
+
+## Develop and verify
+
+Requires Node.js 20 or newer. Playwright 1.58.2 uses Chromium for end-to-end tests.
+
+```sh
+npm ci
 npm run dev
 npm test
-npm run build   # -> dist/
+npm run build
 ```
+
+The exact production build command is `npm run build`. Output is written to `dist/`, with `dist/index.html` at the deployment root. `npm test` runs parser tests and desktop/390 px browser journeys, including automated axe accessibility checks.
+
+## Deploy
+
+Deploy `dist/` as a static site. `public/staticwebapp.config.json` supplies Azure Static Web Apps route fallback and security headers for the `/privacy`, `/terms`, and `/format` client-side routes.
+
+The format is documented in the app at `/format`. The product brief and paper-cut visual system live in `.factory/brief.json` (when provided by the factory) and `.factory/design.md`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
