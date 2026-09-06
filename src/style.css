@@ -36,7 +36,7 @@ a:hover { text-decoration-thickness: 2px; }
 .brand { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; gap: 10px; color: var(--graphite); font-family: Georgia, Cambria, "Times New Roman", serif; font-weight: 700; font-size: 19px; text-decoration: none; margin-right: auto; }
 .brand-mark { width: 40px; height: 40px; display: grid; place-items: center; background: var(--forest); color: #fff; border-radius: 50% 45% 52% 43%; transform: rotate(-3deg); box-shadow: 2px 3px 0 var(--kraft); }
 .site-header nav, footer nav { display: flex; align-items: center; gap: 24px; }
-.site-header nav a { min-height: 44px; display: inline-flex; align-items: center; color: var(--graphite); text-decoration: none; }
+.site-header nav a { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; color: var(--graphite); text-decoration: none; }
 .site-header nav a:hover { color: var(--forest); text-decoration: underline; }
 .privacy-chip { display: inline-flex; gap: 7px; align-items: center; border: 1px solid var(--line); background: rgb(255 252 245 / 65%); border-radius: 999px; padding: 8px 12px; color: var(--forest-deep); font-size: 14px; white-space: nowrap; }
 
@@ -181,7 +181,7 @@ footer p { margin: 0; }
   .brand span:last-child { display: none; }
   .privacy-chip { font-size: 12px; padding: 7px 9px; }
   .site-header nav { font-size: 14px; }
-  .site-header nav a { min-height: 40px; }
+  .site-header nav a { min-height: 44px; }
   .hero { padding: 32px 16px 64px; gap: 32px; }
   h1 { font-size: clamp(2.5rem, 12vw, 3.5rem); }
   .hero-lede { font-size: 17px; }

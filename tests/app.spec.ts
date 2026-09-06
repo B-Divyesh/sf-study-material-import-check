@@ -242,3 +242,17 @@ test('keeps the 390 px layout within the viewport and honors reduced motion', as
   const motion = await page.locator('.button').first().evaluate((element) => getComputedStyle(element).transitionDuration)
   expect(Number.parseFloat(motion)).toBeLessThanOrEqual(0.01)
 })
+
+test('keeps mobile navigation targets at least 44 by 44 CSS pixels', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'Mobile-only target measurement')
+  await page.goto('/')
+  const targets = [page.locator('.brand'), page.locator('.site-header nav a'), page.locator('footer nav a')]
+  for (const target of targets) {
+    const count = await target.count()
+    for (let index = 0; index < count; index += 1) {
+      const box = await target.nth(index).boundingBox()
+      expect(box?.width).toBeGreaterThanOrEqual(44)
+      expect(box?.height).toBeGreaterThanOrEqual(44)
+    }
+  }
+})
