@@ -2,6 +2,17 @@
 
 ## Result: PASS
 
+## Strict review 3
+
+Strict review 3 accepted the same deployed implementation, `0dd872fa2b1b3bfa2c266bfbe9be3e1e990bcae5`, on 2026-09-06 UTC. The reviewed documentation/report baseline was `42f629c3b15768ade6dab92c0de20d8764de29fc`.
+
+- Result: **PASS** — zero findings and zero untested public claims.
+- Fresh live desktop and 390 px phone contexts showed the job, learner audience, sample action, expected outcome, and all three facts before scrolling. The demo exported three sanitized cards, retained its sample label, reset correctly, and did not change real work.
+- The reviewer created real material with a non-default mapping, then verified source and mapping preservation through Demo, Back, Forward, reset, and exit. The temporary demo marker was cleared on exit.
+- A detached clean checkout passed `npm ci`, lint, typecheck, `npm test`, build, and high-severity audit. Every one of the 17 exact claim commands passed separately in desktop and mobile projects.
+- Fresh live `verify-url.sh` and axe checks were clean on root, demo, legal, format, and 404 routes. Mobile Lighthouse 13.4.1 was 100/100/100/100 (LCP 1.1 s, TBT 0 ms, CLS 0).
+- Local production HTML, JavaScript, and CSS match the live deployment by SHA-256. See `.factory/review-3.md` and `/work/.evidence/review-3-*`.
+
 ## Independent verification 5
 
 Verification 5 independently accepted implementation `0dd872fa2b1b3bfa2c266bfbe9be3e1e990bcae5` against the live site on 2026-09-06 UTC. Documentation baseline: `e0fd7c7270b01d6b71fbcbf6a862f149f488a60b`.
