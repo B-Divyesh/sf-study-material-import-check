@@ -2,6 +2,17 @@
 
 ## Result: PASS
 
+## Independent verification 5
+
+Verification 5 independently accepted implementation `0dd872fa2b1b3bfa2c266bfbe9be3e1e990bcae5` against the live site on 2026-09-06 UTC. Documentation baseline: `e0fd7c7270b01d6b71fbcbf6a862f149f488a60b`.
+
+- Result: **PASS** — zero findings and zero untested public claims.
+- Fresh clean-checkout gates passed: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test` (4 Vitest tests; 40 Playwright passes and 2 expected skips), `npm run build`, and `npm audit --audit-level=high`.
+- Every one of the 17 declared claim commands passed separately in desktop and phone projects.
+- Fresh live desktop and phone sessions confirmed the first-screen job/audience/action, realistic demo output, persistent sample label, reset, direct exit, and preservation of active real source/mapping across Demo, reset, Start for real, Back, and Forward.
+- Live axe serious/critical count was zero across root, demo, legal, format, and 404 routes. `verify-url.sh` passed without console errors. Lighthouse 13.4.1 scored 100/100/100/100.
+- Live HTML, JS, and CSS SHA-256 values match the clean `0dd872f` build. See `.factory/verification-5.md` and `/work/.evidence/verification-5-*` for evidence.
+
 - Implementation SHA: `0dd872fa2b1b3bfa2c266bfbe9be3e1e990bcae5` (`fix: preserve real workspace during demo`).
 - Verification and handoff documentation SHA: `44f5f53784284af9edfe9a17806025e6ba7dde8b`.
 - Prior strict-review documentation SHA: `a41dcc296ecb9da0d6d0f3c9eecb298065eba6d7`.
