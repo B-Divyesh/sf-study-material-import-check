@@ -10,6 +10,6 @@ The shipped `untidy-sample.csv` has five realistic study rows. It includes one i
 
 ## Isolation and reset
 
-Demo mode uses the separate `sessionStorage` namespace key `demo:study-material-import-check`. The key contains only the sample-mode marker `sample-v1`; it never stores an edited sample, an uploaded file, an export, or real material. No real-mode storage is read or written while the demo banner is present.
+Demo mode uses the separate `sessionStorage` namespace key `demo:study-material-import-check`. The key contains only the sample-mode marker `sample-v1`; it never stores an edited sample, an uploaded file, an export, or real material. No real-mode browser storage is read or written while the demo banner is present.
 
-**Reset demo** restores the shipped sample. **Start for real** removes the demo key and opens an empty real-mode inspector. Refreshing `/demo` seeds the shipped sample again.
+When demo opens from active real work, the app keeps that real workspace in memory only and uses a separate demo workspace. **Reset demo** restores the shipped sample without changing the saved real workspace. **Start for real** removes the demo key and restores the active real workspace; from a direct `/demo` visit, it opens an empty real-mode inspector. Refreshing `/demo` seeds the shipped sample again.

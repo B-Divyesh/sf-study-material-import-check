@@ -4,13 +4,7 @@ import { csvEscape, looksLikeHeader, parseMaterial, sanitizeFormula, sanitizeMed
 type Role = 'prompt' | 'answer' | 'hint' | 'media' | 'tags' | 'ignore'
 type FindingKind = 'error' | 'warning' | 'note'
 type Finding = { kind: FindingKind; title: string; detail: string; rows?: number[] }
-
-const app = document.querySelector<HTMLDivElement>('#app')!
-const sample = `Question,Answer,Hint,Image\nWhat is the capital of France?,Paris,Think of the Eiffel Tower,https://images.example.org/paris.jpg\nWhat is 2 + 2?,4,,\nWhat is 2 + 2?,4,duplicate row,\n,Photosynthesis,missing prompt,http://unsafe.example/image.png\n=HYPERLINK("bad"),Never run formulas,,javascript:alert(1)`
-const siteOrigin = 'https://study-material-import-check.sociobot.in'
-const demoStorageKey = 'demo:study-material-import-check'
-
-const state: {
+type WorkspaceState = {
   source: string
   name: string
   parsed: ParsedMaterial | null
@@ -18,8 +12,17 @@ const state: {
   mapping: Role[]
   delimiter?: Delimiter
   status: string
+}
+
+const app = document.querySelector<HTMLDivElement>('#app')!
+const sample = `Question,Answer,Hint,Image\nWhat is the capital of France?,Paris,Think of the Eiffel Tower,https://images.example.org/paris.jpg\nWhat is 2 + 2?,4,,\nWhat is 2 + 2?,4,duplicate row,\n,Photosynthesis,missing prompt,http://unsafe.example/image.png\n=HYPERLINK("bad"),Never run formulas,,javascript:alert(1)`
+const siteOrigin = 'https://study-material-import-check.sociobot.in'
+const demoStorageKey = 'demo:study-material-import-check'
+
+const state: WorkspaceState & {
   mode: 'real' | 'demo'
 } = { source: '', name: '', parsed: null, hasHeader: true, mapping: [], status: '', mode: 'real' }
+let savedRealWorkspace: WorkspaceState | null = null
 
 const roleNames: Record<Role, string> = {
   prompt: 'Prompt', answer: 'Answer', hint: 'Hint', media: 'Media URL', tags: 'Tags', ignore: 'Ignore',
@@ -132,6 +135,40 @@ function focusAfterRender(selector: string, scrollSelector?: string): void {
   if (scrollSelector) document.querySelector(scrollSelector)?.scrollIntoView({ block: 'nearest' })
 }
 
+function snapshotWorkspace(): WorkspaceState {
+  return {
+    source: state.source,
+    name: state.name,
+    parsed: state.parsed,
+    hasHeader: state.hasHeader,
+    mapping: [...state.mapping],
+    delimiter: state.delimiter,
+    status: state.status,
+  }
+}
+
+function restoreWorkspace(workspace: WorkspaceState): void {
+  state.source = workspace.source
+  state.name = workspace.name
+  state.parsed = workspace.parsed
+  state.hasHeader = workspace.hasHeader
+  state.mapping = [...workspace.mapping]
+  state.delimiter = workspace.delimiter
+  state.status = workspace.status
+  state.mode = 'real'
+}
+
+function emptyRealWorkspace(): void {
+  state.mode = 'real'
+  state.source = ''
+  state.name = ''
+  state.parsed = null
+  state.hasHeader = true
+  state.mapping = []
+  state.delimiter = undefined
+  state.status = ''
+}
+
 function seedDemo(): void {
   state.mode = 'demo'
   state.source = sample
@@ -148,20 +185,21 @@ function seedDemo(): void {
   }
 }
 
-function clearDemo(): void {
+function enterDemo(): void {
+  if (state.mode !== 'demo') savedRealWorkspace = snapshotWorkspace()
+  seedDemo()
+}
+
+function exitDemo(): void {
   try {
     sessionStorage.removeItem(demoStorageKey)
   } catch {
     // No persistent state is required for the inspector.
   }
-  state.mode = 'real'
-  state.source = ''
-  state.name = ''
-  state.parsed = null
-  state.hasHeader = true
-  state.mapping = []
-  state.delimiter = undefined
-  state.status = ''
+  const workspace = savedRealWorkspace
+  savedRealWorkspace = null
+  if (workspace) restoreWorkspace(workspace)
+  else emptyRealWorkspace()
 }
 
 function parseSource(): void {
@@ -360,7 +398,7 @@ function bindEvents(): void {
   document.querySelector('#load-sample')?.addEventListener('click', () => { goTo('/demo') })
   document.querySelector('#clear-source')?.addEventListener('click', () => { state.source = ''; state.name = ''; state.parsed = null; state.mapping = []; state.status = 'Desk cleared.'; renderApp(); document.querySelector<HTMLTextAreaElement>('#source')?.focus() })
   document.querySelector('#reset-demo')?.addEventListener('click', () => { seedDemo(); renderApp(); focusAfterRender('#reset-demo', '.demo-banner') })
-  document.querySelector('#start-real')?.addEventListener('click', () => { clearDemo(); goTo('/') })
+  document.querySelector('#start-real')?.addEventListener('click', () => { exitDemo(); goTo('/') })
   const input = document.querySelector<HTMLInputElement>('#file-input')
   const choose = () => input?.click()
   document.querySelector('#choose-file')?.addEventListener('click', (event) => { event.stopPropagation(); choose() })
@@ -418,10 +456,10 @@ function announceRoute(): void {
 function renderRoute(focus = false): void {
   const route = routePath()
   if (route === '/demo') {
-    if (state.mode !== 'demo' || !state.parsed) seedDemo()
+    if (state.mode !== 'demo' || !state.parsed) enterDemo()
     renderApp()
   } else if (route === '/') {
-    if (state.mode === 'demo') clearDemo()
+    if (state.mode === 'demo') exitDemo()
     renderApp()
   } else {
     renderInfoPage(route)
@@ -431,8 +469,8 @@ function renderRoute(focus = false): void {
 
 function goTo(path: string, focus = true): void {
   const target = path || '/'
-  if (target === '/demo') seedDemo()
-  if (target === '/' && state.mode === 'demo') clearDemo()
+  if (target === '/demo') enterDemo()
+  if (target === '/' && state.mode === 'demo') exitDemo()
   history.pushState({}, '', target)
   renderRoute(focus)
   if (target.includes('#importer')) requestAnimationFrame(() => document.querySelector('#importer')?.scrollIntoView({ block: 'start' }))

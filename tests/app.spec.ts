@@ -187,14 +187,42 @@ test('@claim:file-limit accepts 5 MiB and rejects a larger file', async ({ page 
   await expect(page.getByRole('button', { name: 'Choose file' })).toBeFocused()
 })
 
-test('@claim:demo-sandbox shows a resettable sample and starts a separate real session', async ({ page }) => {
+test('@claim:demo-sandbox resets sample data without changing an active real session', async ({ page }) => {
   await openDemo(page)
   await page.locator('#source').fill('Prompt,Answer\nChanged sample,Changed answer')
+  await page.getByRole('button', { name: 'Inspect material' }).click()
   await page.getByRole('button', { name: 'Reset demo' }).click()
   await expect(page.locator('#source')).toHaveValue(sampleFile)
   await page.getByRole('button', { name: 'Start for real' }).click()
   await expect(page).toHaveURL(/\/$/)
   await expect(page.locator('#source')).toHaveValue('')
+  expect(await page.evaluate(() => sessionStorage.getItem('demo:study-material-import-check'))).toBeNull()
+
+  const realSource = 'Prompt,Answer,Alternate\nOld private question,Private answer,Restored private question'
+  await inspectSource(page, realSource)
+  const realRoles = page.locator('.role-select:visible')
+  await realRoles.nth(2).selectOption('prompt')
+  const mappingBeforeDemo = await realRoles.evaluateAll((elements) => elements.map((element) => (element as HTMLSelectElement).value))
+  expect(mappingBeforeDemo).toEqual(['ignore', 'answer', 'prompt'])
+
+  await page.getByRole('link', { name: 'Demo', exact: true }).click()
+  await expect(page).toHaveURL(/\/demo$/)
+  await page.goBack()
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.locator('#source')).toHaveValue(realSource)
+  expect(await page.locator('.role-select:visible').evaluateAll((elements) => elements.map((element) => (element as HTMLSelectElement).value))).toEqual(mappingBeforeDemo)
+  await page.goForward()
+  await expect(page).toHaveURL(/\/demo$/)
+  await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible()
+  await page.locator('#source').fill('Prompt,Answer\nChanged demo question,Changed demo answer')
+  await page.getByRole('button', { name: 'Inspect material' }).click()
+  await page.getByRole('button', { name: 'Reset demo' }).click()
+  await expect(page.locator('#source')).toHaveValue(sampleFile)
+  await page.getByRole('button', { name: 'Start for real' }).click()
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.locator('#source')).toHaveValue(realSource)
+  await expect(page.locator('.role-select:visible')).toHaveCount(3)
+  expect(await page.locator('.role-select:visible').evaluateAll((elements) => elements.map((element) => (element as HTMLSelectElement).value))).toEqual(mappingBeforeDemo)
   expect(await page.evaluate(() => sessionStorage.getItem('demo:study-material-import-check'))).toBeNull()
 })
 

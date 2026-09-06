@@ -8,7 +8,7 @@ Live site: <https://study-material-import-check.sociobot.in>
 
 ## Try the sample
 
-Open <https://study-material-import-check.sociobot.in/demo> or select **Try it with sample data**. The five-row sample shows incomplete cards, duplicates, a formula-like value, and unsafe media. Demo mode is separate from real use. **Reset demo** restores the shipped sample. **Start for real** clears the demo and opens an empty inspector.
+Open <https://study-material-import-check.sociobot.in/demo> or select **Try it with sample data**. The five-row sample shows incomplete cards, duplicates, a formula-like value, and unsafe media. Demo mode is separate from real use. **Reset demo** restores the shipped sample. **Start for real** clears the demo and restores active real work, or opens an empty inspector after a direct demo visit.
 
 ## Use the inspector
 

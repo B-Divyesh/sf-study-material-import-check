@@ -24,6 +24,8 @@ Audited 2026-09-06. The first screen names the job, learner audience, and both f
 | Know what the inspector does not do | 6 | Pass |
 | It does not host decks, sync files, teach lessons, or fetch linked media. | 13 | Pass |
 | Your source stays on this device during the session. | 9 | Pass |
+| Check learner-owned study files before importing them. | 8 | Pass |
+| Paper artwork is original, AI-generated imagery. | 6 | Pass |
 
 ## Demo copy audit
 
