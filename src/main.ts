@@ -7,6 +7,8 @@ type Finding = { kind: FindingKind; title: string; detail: string; rows?: number
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 const sample = `Question,Answer,Hint,Image\nWhat is the capital of France?,Paris,Think of the Eiffel Tower,https://images.example.org/paris.jpg\nWhat is 2 + 2?,4,,\nWhat is 2 + 2?,4,duplicate row,\n,Photosynthesis,missing prompt,http://unsafe.example/image.png\n=HYPERLINK("bad"),Never run formulas,,javascript:alert(1)`
+const siteOrigin = 'https://study-material-import-check.sociobot.in'
+const demoStorageKey = 'demo:study-material-import-check'
 
 const state: {
   source: string
@@ -16,7 +18,8 @@ const state: {
   mapping: Role[]
   delimiter?: Delimiter
   status: string
-} = { source: '', name: '', parsed: null, hasHeader: true, mapping: [], status: '' }
+  mode: 'real' | 'demo'
+} = { source: '', name: '', parsed: null, hasHeader: true, mapping: [], status: '', mode: 'real' }
 
 const roleNames: Record<Role, string> = {
   prompt: 'Prompt', answer: 'Answer', hint: 'Hint', media: 'Media URL', tags: 'Tags', ignore: 'Ignore',
@@ -38,27 +41,47 @@ function icon(name: 'leaf' | 'check' | 'warn' | 'note' | 'download' | 'file'): s
   return `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24">${paths[name]}</svg>`
 }
 
+function setPageMeta(title: string, description: string, path: string): void {
+  document.title = title
+  const canonical = `${siteOrigin}${path}`
+  const fields: Record<string, string> = {
+    'meta[name="description"]': description,
+    'link[rel="canonical"]': canonical,
+    'meta[property="og:title"]': title,
+    'meta[property="og:description"]': description,
+    'meta[property="og:url"]': canonical,
+    'meta[name="twitter:title"]': title,
+    'meta[name="twitter:description"]': description,
+  }
+  Object.entries(fields).forEach(([selector, value]) => {
+    document.querySelector<HTMLMetaElement | HTMLLinkElement>(selector)?.setAttribute(selector.startsWith('link') ? 'href' : 'content', value)
+  })
+}
+
 function shell(content: string): string {
   return `<header class="site-header">
     <a class="brand" href="/" aria-label="Study Material Import Check home"><span class="brand-mark">${icon('leaf')}</span><span>Import check</span></a>
-    <nav aria-label="Primary"><a href="/#importer">Open inspector</a><a href="/format">Pack format</a></nav>
-    <span class="privacy-chip">${icon('check')} Stays on this device</span>
-  </header>${content}<footer><p>Made for learner-owned material. No accounts, uploads, analytics, or streaks.</p><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/format">Portable format</a></nav><p class="generated-note">Paper artwork is original, AI-generated imagery.</p></footer>`
+    <nav aria-label="Primary"><a href="/demo">Demo</a><a href="/#importer">Inspector</a><a href="/format">Format</a><a href="/privacy">Privacy</a></nav>
+    <span class="privacy-chip">${icon('check')} Local-only checks</span>
+  </header><p id="route-announcer" class="sr-only" aria-live="polite"></p>${content}<footer><p>Check learner-owned study files before importing them.</p><nav aria-label="Legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/format">Format</a></nav><p class="factory-note">Built by Param Factory · version 1.1.0</p><p class="generated-note">Paper artwork is original, AI-generated imagery.</p></footer>`
 }
 
 function renderInfoPage(path: string): void {
-  const pages: Record<string, { title: string; eyebrow: string; body: string }> = {
+  const pages: Record<string, { title: string; description: string; body: string }> = {
     '/privacy': {
-      eyebrow: 'Privacy note', title: 'Your study material never leaves this browser.',
-      body: `<p>The inspector reads files with browser APIs and performs every check locally. It does not upload, transmit, or store the contents of your material.</p><h2>What we collect</h2><p>Nothing. This version has no accounts, analytics, cookies, advertisements, or third-party scripts. Your source material remains in memory only until you refresh or close the page.</p><h2>Exports</h2><p>Files you export are saved by your browser to the location you choose. You control and own them.</p><h2>Contact</h2><p>For questions, open an issue in the project repository.</p>`,
+      title: 'See how your study material stays private.',
+      description: 'Read how Study Material Import Check handles your files and exports.',
+      body: `<p>The inspector reads files with browser APIs. It checks material locally and does not upload it.</p><h2>What the app stores</h2><p>Your own source material stays in memory until you refresh or close the page. The app has no accounts, analytics, cookies, advertisements, or third-party scripts.</p><p>Demo mode keeps only its shipped sample marker in a separate temporary <code>demo:</code> browser namespace. It never reads or writes your real material. Resetting the demo or starting for real removes that marker.</p><h2>Exports</h2><p>Your browser saves exports where you choose. You control those files.</p><h2>Privacy contact</h2><p><a href="https://github.com/B-Divyesh/sf-study-material-import-check/issues" target="_blank" rel="noopener noreferrer">Open a privacy question on GitHub (opens in a new tab)</a>.</p>`,
     },
     '/terms': {
-      eyebrow: 'Plain-language terms', title: 'A free tool, used on your terms.',
-      body: `<p>Study Material Import Check is provided free of charge under the MIT License. You may use it to inspect material you have the right to use.</p><h2>Your responsibility</h2><p>You are responsible for your source material, linked media, and exported files. Review the preview before importing a pack elsewhere.</p><h2>No warranty</h2><p>The tool is provided “as is,” without warranty. It flags common import problems but cannot guarantee compatibility with every learning application.</p><h2>No lock-in</h2><p>The exported JSON manifest is documented and portable. No account or continuing service is required to read it.</p>`,
+      title: 'Read the terms for this free tool.',
+      description: 'Read the free-use terms for Study Material Import Check.',
+      body: `<p>Study Material Import Check is free under the MIT License. Use it with material you have the right to use.</p><h2>Your responsibility</h2><p>You are responsible for source material, linked media, and exports. Review the preview before importing a pack elsewhere.</p><h2>No warranty</h2><p>The tool is provided as is. It finds common import problems but cannot promise compatibility with every learning app.</p><h2>Portable exports</h2><p>The documented JSON manifest needs no account or continuing service to read it.</p>`,
     },
     '/format': {
-      eyebrow: 'Open format · version 1', title: 'A practice pack you can read anywhere.',
-      body: `<p>The exported <code>.study-pack.json</code> file is UTF-8 JSON. It has no proprietary identifiers and can be opened in any text editor.</p><h2>Manifest shape</h2><pre><code>{
+      title: 'Read the portable practice pack format.',
+      description: 'See the version 1 JSON practice-pack format exported by this tool.',
+      body: `<p>The exported <code>.study-pack.json</code> file is UTF-8 JSON. It has no proprietary identifiers and opens in any text editor. No account or continuing service is required to read it.</p><h2>Manifest shape</h2><pre tabindex="0"><code>{
   "format": "study-pack",
   "version": 1,
   "title": "My material",
@@ -73,12 +96,13 @@ function renderInfoPage(path: string): void {
   }
   const page = pages[path]
   if (!page) {
-    document.title = 'Page not found — Study Material Import Check'
-    app.innerHTML = shell(`<main id="main" class="info-page not-found-page"><a class="back-link" href="/">← Back to inspector</a><p class="eyebrow">Nothing filed here</p><h1>This page is not on the desk.</h1><div class="prose"><p>The address may be mistyped or the page may have moved. Your study material has not been changed.</p><p><a class="button primary" href="/">Open the inspector</a></p></div></main>`)
+    setPageMeta('Page not found — Study Material Import Check', 'This page is unavailable. Return to the study material inspector.', path)
+    app.innerHTML = shell(`<main id="main" class="info-page not-found-page"><a class="back-link" href="/">← Back to inspector</a><h1 tabindex="-1">Find the page you need.</h1><div class="prose"><p>Check the address, then return to the inspector. Your study material has not changed.</p><p><a class="button primary" href="/">Open the inspector</a></p></div></main>`)
     return
   }
-  document.title = `${page.title} — Study Material Import Check`
-  app.innerHTML = shell(`<main id="main" class="info-page"><a class="back-link" href="/">← Back to inspector</a><p class="eyebrow">${page.eyebrow}</p><h1>${page.title}</h1><div class="prose">${page.body}</div></main>`)
+  const routeName = path.slice(1).replace(/^./, (letter) => letter.toUpperCase())
+  setPageMeta(`${routeName} — Study Material Import Check`, page.description, path)
+  app.innerHTML = shell(`<main id="main" class="info-page"><a class="back-link" href="/">← Back to inspector</a><h1 tabindex="-1">${page.title}</h1><div class="prose">${page.body}</div></main>`)
 }
 
 function suggestMapping(parsed: ParsedMaterial, header: boolean): Role[] {
@@ -106,6 +130,38 @@ function focusAfterRender(selector: string, scrollSelector?: string): void {
   const element = document.querySelector<HTMLElement>(selector)
   element?.focus({ preventScroll: true })
   if (scrollSelector) document.querySelector(scrollSelector)?.scrollIntoView({ block: 'nearest' })
+}
+
+function seedDemo(): void {
+  state.mode = 'demo'
+  state.source = sample
+  state.name = 'untidy-sample.csv'
+  state.delimiter = undefined
+  state.parsed = parseMaterial(state.source, state.delimiter)
+  state.hasHeader = looksLikeHeader(state.parsed.rows[0] ?? [])
+  state.mapping = suggestMapping(state.parsed, state.hasHeader)
+  state.status = '5 sample rows inspected locally. Review the findings below.'
+  try {
+    sessionStorage.setItem(demoStorageKey, 'sample-v1')
+  } catch {
+    // The demo remains isolated in memory when browser storage is unavailable.
+  }
+}
+
+function clearDemo(): void {
+  try {
+    sessionStorage.removeItem(demoStorageKey)
+  } catch {
+    // No persistent state is required for the inspector.
+  }
+  state.mode = 'real'
+  state.source = ''
+  state.name = ''
+  state.parsed = null
+  state.hasHeader = true
+  state.mapping = []
+  state.delimiter = undefined
+  state.status = ''
 }
 
 function parseSource(): void {
@@ -249,12 +305,12 @@ function renderWorkspace(): string {
   const rows = dataRows()
   const headers = state.hasHeader ? state.parsed.rows[0] : Array.from({ length: state.parsed.maxColumns }, (_, index) => `Column ${index + 1}`)
   return `<section id="findings" class="work-section paper-sheet" aria-labelledby="findings-title">
-    <div class="section-heading"><div><p class="eyebrow">2 · Inspect</p><h2 id="findings-title" tabindex="-1">Margin notes</h2></div><p class="summary-stamp ${counts.error ? 'needs-work' : 'ready'}">${counts.error ? `${counts.error} to resolve` : 'Ready to map'}</p></div>
+    <div class="section-heading"><div><p class="eyebrow">2 · Inspect</p><h2 id="findings-title" tabindex="-1">Review import findings</h2></div><p class="summary-stamp ${counts.error ? 'needs-work' : 'ready'}">${counts.error ? `${counts.error} to resolve` : 'Ready to map'}</p></div>
     <div class="finding-list">${findings.map((finding) => `<article class="finding ${finding.kind}">${icon(finding.kind === 'error' || finding.kind === 'warning' ? 'warn' : 'note')}<div><h3>${escapeHtml(finding.title)}</h3><p>${escapeHtml(finding.detail)}${rowNumbers(finding.rows)}</p></div></article>`).join('')}</div>
     <p class="repair-note">Export repairs are non-destructive: the source above never changes. Incomplete and duplicate cards are omitted; formulas are neutralized; unsafe media is removed.</p>
   </section>
   <section id="mapping" class="work-section" aria-labelledby="mapping-title">
-    <div class="section-heading"><div><p class="eyebrow">3 · Map</p><h2 id="mapping-title">Tell each column its job</h2></div><label class="header-check"><input id="header-toggle" type="checkbox" ${state.hasHeader ? 'checked' : ''}> First row is a header</label></div>
+    <div class="section-heading"><div><p class="eyebrow">3 · Map</p><h2 id="mapping-title">Map each source column</h2></div><label class="header-check"><input id="header-toggle" type="checkbox" ${state.hasHeader ? 'checked' : ''}> First row is a header</label></div>
     <p class="section-intro">Prompt and Answer are required. Each role can be used once; choosing it for a new column moves it from the old one.</p>
     <div class="mobile-map-list" aria-label="Column mapping">${headers.map((header, index) => `<label><span>${escapeHtml(header || `Column ${index + 1}`)}</span><select class="role-select" data-column="${index}">${(Object.keys(roleNames) as Role[]).map((role) => `<option value="${role}" ${state.mapping[index] === role ? 'selected' : ''}>${roleNames[role]}</option>`).join('')}</select></label>`).join('')}</div>
     <div class="table-scroll" tabindex="0" aria-label="Column mapping and first rows; scroll horizontally if needed">
@@ -263,25 +319,36 @@ function renderWorkspace(): string {
     <div class="mobile-preview"><h3>First cards</h3><ol>${rows.slice(0, 5).map((row) => `<li><strong>${escapeHtml(getValue(row, 'prompt')) || '<span class="empty-cell">Blank prompt</span>'}</strong><span>${escapeHtml(getValue(row, 'answer')) || '<span class="empty-cell">Blank answer</span>'}</span></li>`).join('')}</ol></div>
   </section>
   <section id="export" class="work-section export-sheet" aria-labelledby="export-title">
-    <div><p class="eyebrow">4 · Export</p><h2 id="export-title">Take the tidy cards with you</h2><p>${cleanedCards().length} of ${rows.length} source rows will become cards. The JSON format is open and documented.</p></div>
+    <div><p class="eyebrow">4 · Export</p><h2 id="export-title">Export checked cards</h2><p>${cleanedCards().length} of ${rows.length} source rows will become cards. The JSON format is open and documented.</p></div>
     <div class="export-actions"><button class="button primary" id="export-pack">${icon('download')} Export practice pack</button><button class="button secondary" id="export-csv">Export clean CSV</button><a href="/format">Read the format</a></div>
   </section>`
 }
 
 function renderApp(): void {
-  document.title = 'Study Material Import Check — inspect before you import'
+  const isDemo = state.mode === 'demo'
+  setPageMeta(
+    isDemo ? 'Demo — Study Material Import Check' : 'Study Material Import Check — check study files',
+    isDemo ? 'Try a sample study file. The demo checks it locally and never changes your real material.' : 'Check CSV, TSV, and text study files locally before importing them into a practice tool.',
+    isDemo ? '/demo' : '/',
+  )
   const offline = !navigator.onLine
-  app.innerHTML = shell(`<main id="main">
-    <section class="hero" aria-labelledby="hero-title"><div class="hero-copy"><p class="eyebrow">A quiet check before you practise</p><h1 id="hero-title">Turn a messy study file into tidy, portable cards.</h1><p class="hero-lede">Preview CSV, TSV, or plain text. Find blanks, duplicates, risky formulas, and broken media links—then export a clean, open practice pack.</p><a class="button primary" href="#importer">Check my material</a><p class="local-note">${icon('check')} Parsed entirely in your browser. Nothing is uploaded.</p></div>
+  const demoBanner = isDemo ? `<section class="demo-banner" aria-label="Demo mode"><div><strong>Demo — sample data, nothing is saved</strong><span>Your real material is not read or changed.</span></div><div class="demo-actions"><button class="text-button" id="reset-demo" type="button">Reset demo</button><button class="button secondary" id="start-real" type="button">Start for real</button></div></section>` : ''
+  const introduction = isDemo
+    ? `<section class="demo-intro" aria-labelledby="demo-title"><p class="eyebrow">Sample inspector</p><h1 id="demo-title" tabindex="-1">Check a sample study file.</h1><p>Five sample rows are ready. Review the findings, map fields, and export three safe cards.</p></section>`
+    : `<section class="hero" aria-labelledby="hero-title"><div class="hero-copy"><p class="eyebrow">Study material inspector</p><h1 id="hero-title" tabindex="-1">Check study files before you import.</h1><p class="hero-lede">For learners bringing their own notes into practice, find import problems and export portable cards.</p><div class="hero-actions"><div><a class="button primary" href="/demo">Try it with sample data</a><p class="action-help">See five rows checked and three safe cards ready to export.</p></div><a class="button secondary" href="#importer">Check my material</a></div><ul class="hero-facts"><li>${icon('check')} Local only — no upload</li><li>${icon('check')} Works after it loads — even offline</li><li>${icon('check')} Free under the MIT License</li></ul></div>
       <picture class="hero-art"><source media="(max-width: 640px)" srcset="/assets/hero-paper-workshop-640.f39ea86b.avif" type="image/avif"><source media="(max-width: 640px)" srcset="/assets/hero-paper-workshop-640.d26c82f4.webp" type="image/webp"><source srcset="/assets/hero-paper-workshop-960.73a2c0ca.avif" type="image/avif"><source srcset="/assets/hero-paper-workshop-960.1bfc26f2.webp" type="image/webp"><img src="/assets/hero-paper-workshop-960.064c2652.jpg" width="960" height="640" alt="Paper study notes pass through a green inspection arch and emerge as three neat checked cards" fetchpriority="high" decoding="async"></picture>
-    </section>
-    <ol class="trail" aria-label="Import steps"><li class="active"><span>1</span>Add</li><li class="${state.parsed ? 'active' : ''}"><span>2</span>Inspect</li><li class="${state.parsed ? 'active' : ''}"><span>3</span>Map</li><li class="${state.parsed ? 'active' : ''}"><span>4</span>Export</li></ol>
-    <section id="importer" class="import-section" aria-labelledby="import-title"><div class="section-heading"><div><p class="eyebrow">1 · Add material</p><h2 id="import-title">Place your notes on the desk</h2></div><span class="connection ${offline ? 'offline' : ''}">${offline ? '○ Offline — still works' : '● Ready locally'}</span></div>
+    </section>`
+  const trail = `<ol class="trail" aria-label="Inspection steps"><li class="active"><span>1</span>Add</li><li class="${state.parsed ? 'active' : ''}"><span>2</span>Inspect</li><li class="${state.parsed ? 'active' : ''}"><span>3</span>Map</li><li class="${state.parsed ? 'active' : ''}"><span>4</span>Export</li></ol>`
+  const supportingSections = isDemo ? '' : `<section class="how-it-works" aria-labelledby="how-title"><div><p class="eyebrow">How it works</p><h2 id="how-title">Check material in three steps</h2></div><ol><li><span>1</span><h3>Add a file or paste text</h3><p>Use CSV, TSV, or plain text with a prompt and answer.</p></li><li><span>2</span><h3>Review import findings</h3><p>See blanks, duplicates, formula values, and unsafe media links.</p></li><li><span>3</span><h3>Map fields and export</h3><p>Choose each field once, then download a portable pack or clean CSV.</p></li></ol></section><section class="limits-section" aria-labelledby="limits-title"><div><p class="eyebrow">Privacy and limits</p><h2 id="limits-title">Know what the inspector does not do</h2></div><p>It does not host decks, sync files, teach lessons, or fetch linked media. Your source stays on this device during the session.</p><a href="/privacy">Read the privacy policy</a></section>`
+  app.innerHTML = shell(`${demoBanner}<main id="main" class="${isDemo ? 'demo-main' : ''}">
+    ${introduction}
+    ${trail}
+    <section id="importer" class="import-section" aria-labelledby="import-title"><div class="section-heading"><div><p class="eyebrow">1 · Add material</p><h2 id="import-title">Add study material</h2></div><span class="connection ${offline ? 'offline' : ''}">${offline ? '○ Offline — this loaded page still works' : '● Ready locally'}</span></div>
       <div class="input-grid"><div class="drop-sheet" id="drop-sheet"><span class="file-icon">${icon('file')}</span><strong>Drop a .csv, .tsv, or .txt file</strong><span>or choose one from this device</span><button class="button secondary" type="button" id="choose-file">Choose file</button><input class="sr-only" id="file-input" aria-label="Choose a CSV, TSV, or text file" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"></div>
-      <div class="paste-sheet"><label for="source"><strong>Or paste and edit</strong><span>Comma, tab, semicolon, pipe, or <code>Prompt :: Answer</code></span></label><textarea id="source" rows="9" spellcheck="false" placeholder="Question,Answer&#10;Capital of France?,Paris">${escapeHtml(state.source)}</textarea><div class="paste-actions"><button class="text-button" type="button" id="load-sample">Try a malformed sample</button><button class="text-button" type="button" id="clear-source" ${state.source ? '' : 'disabled'}>Clear</button></div></div></div>
+      <div class="paste-sheet"><label for="source"><strong>Or paste and edit</strong><span>Comma, tab, semicolon, pipe, or <code>Prompt :: Answer</code></span></label><textarea id="source" rows="9" spellcheck="false" placeholder="Question,Answer&#10;Capital of France?,Paris">${escapeHtml(state.source)}</textarea><div class="paste-actions">${isDemo ? '' : '<button class="text-button" type="button" id="load-sample">Try it with sample data</button>'}<button class="text-button" type="button" id="clear-source" ${state.source ? '' : 'disabled'}>Clear</button></div></div></div>
       <div class="inspect-row"><p>${state.name ? `Source: <strong>${escapeHtml(state.name)}</strong>` : 'UTF-8 files up to 5 MB work best.'}</p><button class="button primary" id="inspect-button">Inspect material</button></div>
       <p id="status" class="status" role="status" aria-live="polite">${escapeHtml(state.status)}</p>
-    </section>${renderWorkspace()}
+    </section>${renderWorkspace()}${supportingSections}
   </main>`)
   bindEvents()
 }
@@ -290,8 +357,10 @@ function bindEvents(): void {
   const source = document.querySelector<HTMLTextAreaElement>('#source')
   source?.addEventListener('input', () => { state.source = source.value; state.status = '' })
   document.querySelector('#inspect-button')?.addEventListener('click', parseSource)
-  document.querySelector('#load-sample')?.addEventListener('click', () => { state.source = sample; state.name = 'untidy-sample.csv'; state.delimiter = undefined; parseSource() })
+  document.querySelector('#load-sample')?.addEventListener('click', () => { goTo('/demo') })
   document.querySelector('#clear-source')?.addEventListener('click', () => { state.source = ''; state.name = ''; state.parsed = null; state.mapping = []; state.status = 'Desk cleared.'; renderApp(); document.querySelector<HTMLTextAreaElement>('#source')?.focus() })
+  document.querySelector('#reset-demo')?.addEventListener('click', () => { seedDemo(); renderApp(); focusAfterRender('#reset-demo', '.demo-banner') })
+  document.querySelector('#start-real')?.addEventListener('click', () => { clearDemo(); goTo('/') })
   const input = document.querySelector<HTMLInputElement>('#file-input')
   const choose = () => input?.click()
   document.querySelector('#choose-file')?.addEventListener('click', (event) => { event.stopPropagation(); choose() })
@@ -335,9 +404,56 @@ function bindEvents(): void {
   document.querySelector('#export-csv')?.addEventListener('click', exportCsv)
 }
 
-window.addEventListener('online', () => { if (location.pathname === '/') renderApp() })
-window.addEventListener('offline', () => { if (location.pathname === '/') renderApp() })
+function routePath(): string {
+  return location.pathname.replace(/\/$/, '') || '/'
+}
 
-const route = location.pathname.replace(/\/$/, '') || '/'
-if (route === '/') renderApp()
-else renderInfoPage(route)
+function announceRoute(): void {
+  const heading = document.querySelector<HTMLElement>('h1')
+  heading?.focus({ preventScroll: true })
+  const announcer = document.querySelector<HTMLElement>('#route-announcer')
+  if (announcer && heading) announcer.textContent = `Opened ${heading.textContent ?? 'page'}`
+}
+
+function renderRoute(focus = false): void {
+  const route = routePath()
+  if (route === '/demo') {
+    if (state.mode !== 'demo' || !state.parsed) seedDemo()
+    renderApp()
+  } else if (route === '/') {
+    if (state.mode === 'demo') clearDemo()
+    renderApp()
+  } else {
+    renderInfoPage(route)
+  }
+  if (focus) requestAnimationFrame(announceRoute)
+}
+
+function goTo(path: string, focus = true): void {
+  const target = path || '/'
+  if (target === '/demo') seedDemo()
+  if (target === '/' && state.mode === 'demo') clearDemo()
+  history.pushState({}, '', target)
+  renderRoute(focus)
+  if (target.includes('#importer')) requestAnimationFrame(() => document.querySelector('#importer')?.scrollIntoView({ block: 'start' }))
+  else window.scrollTo({ top: 0, behavior: 'auto' })
+}
+
+document.addEventListener('click', (event) => {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  const target = event.target as Element | null
+  const anchor = target?.closest<HTMLAnchorElement>('a[href]')
+  if (!anchor || anchor.target || anchor.hasAttribute('download')) return
+  const url = new URL(anchor.href, location.href)
+  if (url.origin !== location.origin) return
+  const route = url.pathname.replace(/\/$/, '') || '/'
+  if (!['/', '/demo', '/privacy', '/terms', '/format'].includes(route)) return
+  event.preventDefault()
+  goTo(`${route}${url.hash}`)
+})
+
+window.addEventListener('popstate', () => renderRoute(true))
+window.addEventListener('online', () => { if (routePath() === '/' || routePath() === '/demo') renderApp() })
+window.addEventListener('offline', () => { if (routePath() === '/' || routePath() === '/demo') renderApp() })
+
+renderRoute()

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://study-material-import-check.sociobot.in/sitemap.xml

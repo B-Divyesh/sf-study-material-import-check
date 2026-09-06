@@ -1,0 +1,121 @@
+[
+  {
+    "id": "input-files",
+    "claim": "Accepts CSV, TSV, and plain-text study files.",
+    "where": "README and inspector",
+    "test": "npm run test:claim -- --grep @claim:input-files",
+    "sandbox": "Open /demo; choose one CSV, one TSV, and one text file; each produces an exportable inspected row."
+  },
+  {
+    "id": "input-shapes",
+    "claim": "Recognizes comma, tab, semicolon, pipe, and Prompt :: Answer input.",
+    "where": "Inspector helper text and README",
+    "test": "npm run test:claim -- --grep @claim:input-shapes",
+    "sandbox": "Open /demo; inspect five one-card sources using each advertised shape."
+  },
+  {
+    "id": "incomplete-cards",
+    "claim": "Finds incomplete cards and omits them from exports.",
+    "where": "How it works and findings",
+    "test": "npm run test:claim -- --grep @claim:incomplete-cards",
+    "sandbox": "Open /demo; observe the incomplete finding and inspect the downloaded pack."
+  },
+  {
+    "id": "duplicates",
+    "claim": "Finds duplicate cards and omits later duplicates from exports.",
+    "where": "How it works and findings",
+    "test": "npm run test:claim -- --grep @claim:duplicates",
+    "sandbox": "Open /demo; observe the duplicate finding and verify unique exported prompt-answer pairs."
+  },
+  {
+    "id": "formula-safety",
+    "claim": "Neutralizes spreadsheet formulas in exports.",
+    "where": "How it works and format documentation",
+    "test": "npm run test:claim -- --grep @claim:formula-safety",
+    "sandbox": "Open /demo; download the pack and verify the formula-like prompt begins with an apostrophe."
+  },
+  {
+    "id": "media-safety",
+    "claim": "Removes non-HTTPS media links from exports.",
+    "where": "How it works and format documentation",
+    "test": "npm run test:claim -- --grep @claim:media-safety",
+    "sandbox": "Open /demo; download the pack and verify unsafe media is blank while HTTPS media remains."
+  },
+  {
+    "id": "unique-mapping",
+    "claim": "Uses each mapped field once and exports the selected source column.",
+    "where": "Mapping instructions",
+    "test": "npm run test:claim -- --grep @claim:unique-mapping",
+    "sandbox": "Open /demo; move Prompt to another column, retain keyboard focus, and inspect the downloaded value."
+  },
+  {
+    "id": "practice-pack",
+    "claim": "Exports a version-1 portable practice-pack JSON file.",
+    "where": "Export panel, README, and format page",
+    "test": "npm run test:claim -- --grep @claim:practice-pack",
+    "sandbox": "Open /demo; download the practice pack and verify its filename, format, version, fields, and cards."
+  },
+  {
+    "id": "clean-csv",
+    "claim": "Exports sanitized clean CSV.",
+    "where": "Export panel and README",
+    "test": "npm run test:claim -- --grep @claim:clean-csv",
+    "sandbox": "Open /demo; download CSV and verify the header, cleaned row count, formula prefix, and removed unsafe link."
+  },
+  {
+    "id": "local-processing",
+    "claim": "Checks and exports study material locally without upload.",
+    "where": "Landing facts, privacy page, and README",
+    "test": "npm run test:claim -- --grep @claim:local-processing",
+    "sandbox": "Record every request during the /demo export flow and assert all requests remain on the current origin."
+  },
+  {
+    "id": "memory-only",
+    "claim": "Does not retain your real study material after reload.",
+    "where": "Privacy page and README",
+    "test": "npm run test:claim -- --grep @claim:memory-only",
+    "sandbox": "Leave /demo, inspect a private card, reload, and assert the input and browser storage contain no private content."
+  },
+  {
+    "id": "no-tracking",
+    "claim": "Has no accounts, cookies, analytics, or third-party requests.",
+    "where": "Privacy page and footer",
+    "test": "npm run test:claim -- --grep @claim:no-tracking",
+    "sandbox": "Open a fresh real session; assert cookies are empty and every load request uses the current origin."
+  },
+  {
+    "id": "offline-after-load",
+    "claim": "Checks material after the page has loaded, even when the connection drops.",
+    "where": "Landing facts and inspector connection notice",
+    "test": "npm run test:claim -- --grep @claim:offline-after-load",
+    "sandbox": "Open /demo in a new browser context, set it offline, then inspect a valid card without a request."
+  },
+  {
+    "id": "mit-license",
+    "claim": "Is free under the MIT License.",
+    "where": "Landing facts, terms page, and README",
+    "test": "npm run test:claim -- --grep @claim:mit-license",
+    "sandbox": "Open /terms and verify the visible free-use and MIT License terms."
+  },
+  {
+    "id": "portable-format",
+    "claim": "Documents a portable JSON format with no proprietary identifiers or continuing service requirement.",
+    "where": "Format page and terms page",
+    "test": "npm run test:claim -- --grep @claim:portable-format",
+    "sandbox": "Open /format and verify the visible portability and no-account statements."
+  },
+  {
+    "id": "file-limit",
+    "claim": "Accepts files through 5 MiB and rejects larger files with guidance.",
+    "where": "Inspector helper text and file error",
+    "test": "npm run test:claim -- --grep @claim:file-limit",
+    "sandbox": "Choose an exact 5 MiB CSV and then a 5 MiB plus one byte CSV; verify accepted inspection then focused rejection guidance."
+  },
+  {
+    "id": "demo-sandbox",
+    "claim": "Provides a resettable sample that never changes your real material.",
+    "where": "Landing action and demo banner",
+    "test": "npm run test:claim -- --grep @claim:demo-sandbox",
+    "sandbox": "Open /demo, alter the sample, reset it, start for real, and verify the real input is empty and demo marker is removed."
+  }
+]

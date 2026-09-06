@@ -54,3 +54,4 @@ The only raster illustration is a wide hero scene: an abstract paper-cut desk wh
 - Date: 2026-08-28.
 - License/provenance: original model-generated asset commissioned for this product; retained source prompt sidecar in `assets/src/` and disclosed in the footer.
 - Delivery: optimized responsive WebP/AVIF plus JPEG fallback; content-hashed filenames allow safe immutable caching, and the mobile candidate is under 300 KB with explicit dimensions.
+- Social delivery: `public/social-paper-workshop.jpg` is a reviewed 1200 × 630 crop of the same commissioned hero, used only for Open Graph and Twitter cards. `public/apple-touch-icon.png` is a reviewed square crop of that same asset. No new subject, model call, or license was introduced.

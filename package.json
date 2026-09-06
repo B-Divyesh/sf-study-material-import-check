@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run && playwright test",
+    "test:claim": "playwright test",
     "preview": "vite preview"
   },
   "devDependencies": {
