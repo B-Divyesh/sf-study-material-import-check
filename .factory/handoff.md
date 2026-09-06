@@ -3,6 +3,7 @@
 ## Result: PASS
 
 - Implementation SHA: `0dd872fa2b1b3bfa2c266bfbe9be3e1e990bcae5` (`fix: preserve real workspace during demo`).
+- Verification and handoff documentation SHA: `44f5f53784284af9edfe9a17806025e6ba7dde8b`.
 - Prior strict-review documentation SHA: `a41dcc296ecb9da0d6d0f3c9eecb298065eba6d7`.
 - The implementation is deployed to <https://study-material-import-check.sociobot.in>.
 
